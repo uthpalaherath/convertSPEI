@@ -19,7 +19,7 @@ convertSPEI.py -h
 ## Usage
 
 ```
-convertSPEI.py -np 20 -inp spei01.nc -out spei01_converted.xslx -type excel
+convertSPEI.py -np 20 -inp spei01.nc -out spei01_converted.xlsx -type excel
 ```
 
 where, </br>
