@@ -12,4 +12,5 @@ setup(
     license="LICENSE.txt",
     scripts=["scripts/convertSPEI.py"],
     install_requires=["pandas"],
+    keywords=["netcdf", "spei", "atmosphereicsciences", "earthsciences"],
 )
