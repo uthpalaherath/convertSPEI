@@ -26,6 +26,7 @@ import sys
 from multiprocessing import Pool
 import argparse
 from argparse import RawTextHelpFormatter
+from append_df import cython_append
 
 
 class Converter:
@@ -99,16 +100,8 @@ class Converter:
         print("Updating dataframe...")
         df = pd.DataFrame(columns=["Time", "Latitude", "Longitude", "SPEI"],)
 
-        for it in range(len(result)):
-            df = df.append(
-                {
-                    "Time": str(self.dtime.data[result[it][0][0]]),
-                    "Latitude": self.lat[result[it][1][0]],
-                    "Longitude": self.lon[result[it][2][0]],
-                    "SPEI": result[it][3][0],
-                },
-                ignore_index=True,
-            )
+        # Call cython_append to append to dataframe with cython
+        df = cython_append(df, result, self.dtime, self.lat, self.lon)
 
         # Saving dataframe to output file
         df.sort_values(by=["Time"])
