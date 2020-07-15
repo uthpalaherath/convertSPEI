@@ -23,11 +23,11 @@ ext_modules = cythonize([Extension("scripts.append_df", ["scripts/append_df.pyx"
 setup(
     name="convertSPEI",
     description="A Python script to convert Standardised Precipitation-Evapotranspiration Index (SPEI) data from the netcdf format to csv and Excel formats.",
-    version="0.4",
+    version="0.5",
     author="Uthpala Herath",
     author_email="ukh0001@mix.wvu.edu",
     url="https://github.com/uthpalaherath/convertSPEI",
-    download_url="https://github.com/uthpalaherath/convertSPEI/archive/0.4.tar.gz",
+    download_url="https://github.com/uthpalaherath/convertSPEI/archive/0.5.tar.gz",
     license="LICENSE.txt",
     scripts=["scripts/convertSPEI.py", "scripts/append_df.pyx", "scripts/append_df.c"],
     install_requires=["pandas", "cython"],

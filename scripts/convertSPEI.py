@@ -20,6 +20,10 @@ convertSPEI.py -h brings up the help menu.
 
 """
 
+import pyximport
+
+pyximport.install()
+
 import netCDF4
 import pandas as pd
 import sys
