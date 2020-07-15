@@ -1,6 +1,9 @@
 # convertSPEI
 
-This program converts Standardised Precipitation-Evapotranspiration Index (SPEI) data from the netcdf format to csv and Excel formats. The SPEI data is available at <https://spei.csic.es/index.html>.
+This program converts time series Standardised Precipitation-Evapotranspiration Index (SPEI) data from the netcdf format to csv and Excel formats. The SPEI data is available at <https://spei.csic.es/index.html>. </br>
+Although parallelized, for large datasets the conversion might take a while. 
+The column headers are Time, Latitude, Longitude and SPEI value in that order.
+
 
 ## Installation
 
