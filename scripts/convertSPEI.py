@@ -4,9 +4,9 @@
 SPEI data converter.
 
 This script converts SPEI time series data in netcdf format
-retrieved from https://spei.csic.es to Excel or csv formats.
+retrieved from https://spei.csic.es to a csv format.
 
-Note: Although parallelized,  for large datasets the conversion
+Note: Although parallelized, for large datasets the conversion
 might take a while.
 
 - Uthpala Herath
@@ -14,107 +14,99 @@ might take a while.
 
 Usage:
 
-$ convertSPEI.py -inp spei01.nc -np 4 -type excel
+$ convertSPEI.py -np 4 -inp spei01.nc -out spei01_converted.csv
 
 convertSPEI.py -h brings up the help menu.
 
 """
 
-import pyximport
-
-pyximport.install()
-
 import netCDF4
-import pandas as pd
 import sys
 from multiprocessing import Pool
 import argparse
 from argparse import RawTextHelpFormatter
-from append_df import cython_append
+import csv
 
 
-class Converter:
+def get_spei(datalist):
     """
-    This class contains methods to perform the conversion.
+    this method returns the SPEI value given
+    time, latitude and longitude indexes i,j,k.
     """
+    dtime_retlist = []
+    lat_retlist = []
+    lon_retlist = []
+    spei_retlist = []
 
-    def __init__(self, args):
-        print("----------------------------------")
-        print("\nSPEI data converter")
-        print("\nAuthor: Uthpala Herath")
-        print("https://github.com/uthpalaherath")
-        print("----------------------------------")
-        print("\nRunning on %d cores..." % args.np)
+    dtime_retlist.append(datalist[0])
+    lat_retlist.append(datalist[1])
+    lon_retlist.append(datalist[2])
+    spei_retlist.append(spei.data[datalist[0], datalist[1], datalist[2]])
 
-        self.inp = args.inp
-        self.out = args.out
-        self.np = args.np
-        self.type = args.type
+    return dtime_retlist, lat_retlist, lon_retlist, spei_retlist
 
-        spei_nc_file = self.inp
-        nc = netCDF4.Dataset(spei_nc_file, mode="r")
 
-        self.lat = nc.variables["lat"][:]
-        self.lon = nc.variables["lon"][:]
-        rawtime = nc.variables["time"]
-        self.dtime = netCDF4.num2date(rawtime[:], rawtime.units)
-        self.spei = nc.variables["spei"][:]
+def main(args):
 
-        nc.close()
+    print("----------------------------------")
+    print("\nSPEI data converter")
+    print("\nAuthor: Uthpala Herath")
+    print("https://github.com/uthpalaherath")
+    print("----------------------------------")
+    print("\nRunning on %d cores..." % args.np)
 
-        self.dtime_retlist = []
-        self.lat_retlist = []
-        self.lon_retlist = []
-        self.spei_retlist = []
+    inp = args.inp
+    out = args.out
+    np = args.np
 
-        # Calling main function
-        self.main()
+    spei_nc_file = inp
+    nc = netCDF4.Dataset(spei_nc_file, mode="r")
 
-    def get_spei(self, datalist):
-        """
-        this method returns the SPEI value given
-        time, latitude and longitude indexes i,j,k.
-        """
+    lat = nc.variables["lat"][:]
+    lon = nc.variables["lon"][:]
+    rawtime = nc.variables["time"]
+    dtime = netCDF4.num2date(rawtime[:], rawtime.units)
 
-        self.dtime_retlist.append(datalist[0])
-        self.lat_retlist.append(datalist[1])
-        self.lon_retlist.append(datalist[2])
-        self.spei_retlist.append(self.spei.data[datalist[0], datalist[1], datalist[2]])
+    global spei
+    spei = nc.variables["spei"][:]
 
-        return self.dtime_retlist, self.lat_retlist, self.lon_retlist, self.spei_retlist
+    nc.close()
 
-    def main(self):
+    # Creating array for calling get_spei() in parallel.
+    print("\nCreating data list...")
+    datalist = []
+    for i in range(len(dtime)):
+        for j in range(len(lat)):
+            for k in range(len(lon)):
+                datalist.append([i, j, k])
 
-        # Creating array for calling get_spei() in parallel.
-        print("\nCreating data list...")
-        datalist = []
-        for i in range(len(self.dtime)):
-            for j in range(len(self.lat)):
-                for k in range(len(self.lon)):
-                    datalist.append([i, j, k])
 
-        # Calling get_spei to get spei value and append
-        # to dataframe
-        print("Indexing SPEI data [This may take a while!]...")
-        p = Pool(self.np)
-        result = p.map(self.get_spei, datalist)
-        p.close()
+    # Calling get_spei to get spei value and append
+    # to dataframe
+    print("Indexing SPEI data [This may take a while!]...")
+    p = Pool(np)
+    result = p.map(get_spei, datalist)
+    p.close()
 
-        # creating dataframe
-        print("Updating dataframe...")
-        df = pd.DataFrame(columns=["Time", "Latitude", "Longitude", "SPEI"],)
+    # Writing to file
+    print("Writing %d lines to file..." % len(result))
 
-        # Call cython_append to append to dataframe with cython
-        df = cython_append(df, result, self.dtime, self.lat, self.lon)
+    fieldnames = ["Time", "Latitude", "Longitude", "SPEI"]
 
-        # Saving dataframe to output file
-        df.sort_values(by=["Time"])
-        print("Writing to file...")
-        if self.type == "excel":
-            df.to_excel(self.out, index=False)
-        elif self.type == "csv":
-            df.to_csv(self.out, index=False)
-        print("Complete.")
+    with open(out, "w") as fn:
+        writer = csv.DictWriter(fn, fieldnames=fieldnames, dialect="excel")
+        writer.writeheader()
+
+        for it in range(len(result)):
+            writer.writerow(
+                {
+                    "Time": str(dtime.data[result[it][0][0]]),
+                    "Latitude": lat[result[it][1][0]],
+                    "Longitude": lon[result[it][2][0]],
+                    "SPEI": result[it][3][0],
+                }
+            )
+    print("Complete.")
 
 
 if __name__ == "__main__":
@@ -123,15 +115,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("-inp", type=str, help="Input netcdf file name")
     parser.add_argument(
-        "-out", type=str, help="Output file name", default="spei_converted.xlsx"
-    )
-    parser.add_argument(
-        "-type",
-        type=str,
-        help="Output format",
-        default="excel",
-        choices=["excel", "csv"],
+        "-out", type=str, help="Output file name", default="spei_converted.csv"
     )
     parser.add_argument("-np", type=int, help="Number of processors", default=1)
     args = parser.parse_args()
-    Converter(args)
+    main(args)
